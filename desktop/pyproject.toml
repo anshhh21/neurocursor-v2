@@ -1,0 +1,29 @@
+[project]
+name = "neurocursor"
+version = "0.1.0"
+description = "Local-first AI virtual mouse desktop application."
+readme = "../README.md"
+requires-python = ">=3.11,<3.14"
+authors = [
+  { name = "Ansh Sharma" }
+]
+dependencies = []
+
+[project.optional-dependencies]
+desktop = [
+  "opencv-python",
+  "mediapipe",
+  "numpy",
+  "pyautogui",
+  "PySide6",
+]
+dev = [
+  "pytest",
+]
+
+[project.scripts]
+neurocursor = "neurocursor.__main__:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
