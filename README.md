@@ -33,3 +33,20 @@ desktop/  Python desktop application and gesture engine
 docs/     Architecture notes and learning roadmap
 web/      Future landing and download website
 ```
+
+## Run The Current Desktop Smoke Test
+
+The desktop package does not start the camera or UI yet. For now, it only proves that the Python package structure is correct.
+
+```bash
+cd desktop
+PYTHONPATH=src python -m neurocursor
+```
+
+Expected output:
+
+```text
+NeuroCursor V0.1.0
+Desktop package entry point is working.
+Next milestone: camera capture module.
+```
