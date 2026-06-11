@@ -40,7 +40,7 @@ The desktop package does not start the camera or UI yet. For now, it only proves
 
 ```bash
 cd desktop
-PYTHONPATH=src python -m neurocursor
+PYTHONPATH=src python3 -m neurocursor
 ```
 
 Expected output:

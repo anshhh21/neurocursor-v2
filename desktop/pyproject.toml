@@ -2,7 +2,7 @@
 name = "neurocursor"
 version = "0.1.0"
 description = "Local-first AI virtual mouse desktop application."
-readme = "../README.md"
+readme = "README.md"
 requires-python = ">=3.11,<3.14"
 authors = [
   { name = "Ansh Sharma" }
@@ -27,3 +27,9 @@ neurocursor = "neurocursor.__main__:main"
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+neurocursor = ["assets/*.task"]
