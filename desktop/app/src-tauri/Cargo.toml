@@ -1,0 +1,20 @@
+[package]
+name = "neurocursor-v2"
+version = "0.1.0"
+description = "NeuroCursor V2 desktop shell"
+authors = ["Ansh Sharma"]
+edition = "2021"
+
+[lib]
+name = "neurocursor_v2_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Keep this pinned until Tauri's transitive dependencies accept newer time releases.
+time = "=0.3.47"

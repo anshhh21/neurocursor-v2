@@ -12,7 +12,48 @@ Learn how modern Python projects are organized:
 - packages and imports
 - why large scripts become difficult to maintain
 
-## 2. Dataclasses, Type Hints, And Enums
+## 2. Tauri Fundamentals
+
+Learn what Tauri adds to your web development skills:
+
+- WebView desktop app shell
+- `src-tauri/`
+- `tauri.conf.json`
+- Rust commands
+- native packaging
+
+## 3. React + Vite Desktop UI
+
+You already know web development, so focus on what changes in desktop:
+
+- no server routes inside the desktop app
+- app-like layouts instead of landing pages
+- local state for status
+- commands from frontend to Tauri
+- desktop permissions and packaging constraints
+
+## 4. Rust Basics For Tauri
+
+You do not need deep Rust first. Learn only the bridge layer:
+
+- functions
+- structs
+- `Result`
+- strings
+- process spawning
+- basic error handling
+
+## 5. Python Engine CLI
+
+The Python engine should stay runnable on its own:
+
+```bash
+python -m neurocursor
+```
+
+Later, Tauri will launch this engine as a packaged sidecar.
+
+## 6. Dataclasses, Type Hints, And Enums
 
 These are the foundation for clean settings and engine state.
 
@@ -24,7 +65,7 @@ Focus on:
 - default values
 - keeping configuration in one place
 
-## 3. MediaPipe Hand Landmarks
+## 7. MediaPipe Hand Landmarks
 
 Understand what MediaPipe gives you before tuning gestures.
 
@@ -37,7 +78,7 @@ Learn:
 - confidence values
 - why camera distance changes gesture thresholds
 
-## 4. State Machines
+## 8. State Machines
 
 Gesture apps need memory across frames. A click should not happen just because two fingers are close in one frame.
 
@@ -50,7 +91,7 @@ Learn states like:
 - paused
 - lost tracking
 
-## 5. Cursor Smoothing
+## 9. Cursor Smoothing
 
 Start simple, then improve.
 
@@ -62,27 +103,14 @@ Learn:
 - velocity-aware smoothing
 - One Euro Filter
 
-## 6. PySide6 Desktop Basics
-
-Learn enough Qt to build the control center.
-
-Focus on:
-
-- `QApplication`
-- `QMainWindow`
-- layouts and widgets
-- signals and slots
-- `QThread`
-- updating UI safely from worker threads
-- `QSettings`
-
-## 7. Packaging With PyInstaller
+## 10. Packaging With PyInstaller And Tauri
 
 Do this only after the app runs well locally.
 
 Learn:
 
-- one-folder builds
+- PyInstaller for the Python engine sidecar
+- Tauri sidecars
 - app assets and model files
 - macOS `.app`
 - Windows `.exe`

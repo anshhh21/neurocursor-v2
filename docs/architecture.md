@@ -1,33 +1,33 @@
 # NeuroCursor V2 Architecture
 
-V2 should be built as a desktop application with a clean internal engine, not as one large script. Each module should have one job and should be testable without launching the full app.
+V2 should be built as a Tauri desktop application with a clean Python engine sidecar, not as one large script. Each module should have one job and should be testable without launching the full app.
 
 ## Runtime Flow
 
 ```text
-Camera frame
+React UI
+  -> Tauri command
+  -> Rust process bridge
+  -> Python engine sidecar
+  -> OpenCV camera frame
   -> MediaPipe tracker
   -> Gesture classifier
   -> Cursor smoothing
   -> Cursor controller
-  -> Desktop UI telemetry
 ```
 
 ## Desktop Layer
 
-The PySide6 app owns the visible user experience:
+The Tauri app owns the visible user experience:
 
-- Main control window.
-- Start and stop controls.
-- Camera preview.
-- Tracking status.
-- Gesture status.
-- Settings controls.
-- Permission and troubleshooting messages.
+- React and TypeScript render the control center.
+- Vite runs the frontend during development.
+- Rust/Tauri commands connect UI actions to native behavior.
+- The Python engine runs as a separate local process now and a sidecar later.
 
-Camera and gesture work must run away from the UI thread. Use Qt signals and slots to send status updates back to the interface.
+Camera and gesture work must stay inside Python. Tauri should start, stop, and monitor the engine; it should not contain gesture or MediaPipe logic.
 
-## Core Modules
+## Python Engine Modules
 
 - `camera`: opens the webcam, reads frames, handles camera errors.
 - `tracker`: runs MediaPipe and converts frames into hand landmarks.
@@ -41,7 +41,8 @@ Camera and gesture work must run away from the UI thread. Use Qt signals and slo
 
 - Keep V1 untouched.
 - Keep Next.js out of the desktop runtime.
-- Avoid WebSockets inside the desktop app unless an external API is needed later.
+- Start IPC simply: Tauri starts Python and reads JSON lines from stdout.
+- Avoid WebSockets inside the desktop app unless stdout IPC becomes limiting.
 - Avoid fixed pixel gesture thresholds when possible; prefer normalized hand-scale measurements.
 - Make settings simple for users, even if internal algorithms are more technical.
 - Package only after the local desktop app is stable.

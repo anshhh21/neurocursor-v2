@@ -1,11 +1,11 @@
-# NeuroCursor Desktop
+# NeuroCursor Engine
 
-This folder contains the Python desktop application for NeuroCursor V2.
+This folder contains the Python gesture engine for NeuroCursor V2.
 
 The package uses a `src/` layout:
 
 ```text
-desktop/
+desktop/engine/
   pyproject.toml
   src/
     neurocursor/

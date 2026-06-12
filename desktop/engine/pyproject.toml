@@ -1,7 +1,7 @@
 [project]
-name = "neurocursor"
+name = "neurocursor-engine"
 version = "0.1.0"
-description = "Local-first AI virtual mouse desktop application."
+description = "Local-first AI virtual mouse gesture engine for NeuroCursor."
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 authors = [
@@ -10,19 +10,18 @@ authors = [
 dependencies = []
 
 [project.optional-dependencies]
-desktop = [
+engine = [
   "opencv-python",
   "mediapipe",
   "numpy",
   "pyautogui",
-  "PySide6",
 ]
 dev = [
   "pytest",
 ]
 
 [project.scripts]
-neurocursor = "neurocursor.__main__:main"
+neurocursor-engine = "neurocursor.__main__:main"
 
 [build-system]
 requires = ["setuptools>=68"]
