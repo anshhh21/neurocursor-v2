@@ -1,9 +1,8 @@
 use serde_json::Value;
+use std::io::{BufRead, BufReader};
+use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter};
-use tauri::async_runtime::spawn;
-use tauri_plugin_shell::process::{CommandChild, CommandEvent};
-use tauri_plugin_shell::ShellExt;
 
 #[derive(serde::Serialize)]
 struct EngineStatus {
@@ -20,7 +19,7 @@ struct EngineEvent {
     payload: Value,
 }
 
-struct EngineProcess(Arc<Mutex<Option<CommandChild>>>);
+struct EngineProcess(Arc<Mutex<Option<Child>>>);
 
 #[tauri::command]
 fn start_engine(
@@ -39,44 +38,94 @@ fn start_engine(
         });
     }
 
-    let sidecar_command = app_handle
-        .shell()
-        .sidecar("engine")
-        .map_err(|e| format!("Failed to create sidecar command: {}", e))?;
+    // Resolve the engine directory relative to the Tauri app.
+    // In development: the engine source lives at ../../engine relative to src-tauri
+    // We need the absolute path to the engine's src directory for PYTHONPATH.
+    let engine_dir = std::env::current_dir()
+        .unwrap_or_default()
+        .join("../../engine");
+    let engine_dir = engine_dir
+        .canonicalize()
+        .unwrap_or_else(|_| engine_dir.clone());
+    let engine_src = engine_dir.join("src");
 
-    let (mut rx, child) = sidecar_command
+    let mut child = Command::new("python3")
+        .arg("-m")
+        .arg("neurocursor")
+        .env("PYTHONPATH", &engine_src)
+        .current_dir(&engine_dir)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
         .spawn()
-        .map_err(|e| format!("Failed to spawn engine sidecar: {}", e))?;
+        .map_err(|e| format!("Failed to spawn engine: {}", e))?;
 
+    // Read the first line to confirm startup.
+    let stdout = child.stdout.take().ok_or("No stdout from engine")?;
+    let mut reader = BufReader::new(stdout);
+    let mut first_line = String::new();
+    let engine_status;
+    let message;
+
+    match reader.read_line(&mut first_line) {
+        Ok(0) => {
+            return Err("Engine exited immediately without output.".into());
+        }
+        Ok(_) => {
+            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&first_line) {
+                engine_status = parsed
+                    .get("engineStatus")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown")
+                    .to_string();
+                message = parsed
+                    .get("message")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("No message.")
+                    .to_string();
+
+                // Forward the first line as an event too.
+                if let Ok(event) = serde_json::from_str::<EngineEvent>(&first_line) {
+                    let _ = app_handle.emit("engine-event", &event);
+                }
+            } else {
+                engine_status = "unknown".to_string();
+                message = format!("Unexpected first line: {}", first_line.trim());
+            }
+        }
+        Err(e) => {
+            return Err(format!("Failed to read engine output: {}", e));
+        }
+    }
+
+    // Spawn a background thread to continuously read stdout and emit events.
     let app_handle_clone = app_handle.clone();
     let state_clone = Arc::clone(&state.0);
-
-    spawn(async move {
-        while let Some(event) = rx.recv().await {
-            match event {
-                CommandEvent::Stdout(line_bytes) => {
-                    let line = String::from_utf8_lossy(&line_bytes);
+    std::thread::spawn(move || {
+        let mut line = String::new();
+        loop {
+            line.clear();
+            match reader.read_line(&mut line) {
+                Ok(0) => break, // EOF — engine exited
+                Ok(_) => {
                     if let Ok(event) = serde_json::from_str::<EngineEvent>(&line) {
                         let _ = app_handle_clone.emit("engine-event", &event);
                     }
                 }
-                CommandEvent::Terminated(_) => {
-                    // Automatically clear the child reference when it dies
-                    if let Ok(mut guard) = state_clone.lock() {
-                        *guard = None;
-                    }
-                    break;
-                }
-                _ => {}
+                Err(_) => break,
             }
+        }
+        // Engine process ended, clear the reference
+        if let Ok(mut guard) = state_clone.lock() {
+            *guard = None;
         }
     });
 
+    // Store the child process so we can stop it later.
     *guard = Some(child);
 
     Ok(EngineStatus {
-        engine_status: "ready".into(),
-        message: "Engine sidecar started successfully.".into(),
+        engine_status,
+        message,
     })
 }
 
@@ -87,8 +136,9 @@ fn stop_engine(state: tauri::State<'_, EngineProcess>) -> Result<EngineStatus, S
         .lock()
         .map_err(|e| format!("Lock poisoned: {}", e))?;
 
-    if let Some(child) = guard.take() {
+    if let Some(mut child) = guard.take() {
         let _ = child.kill();
+        let _ = child.wait();
         return Ok(EngineStatus {
             engine_status: "exited".into(),
             message: "Engine stopped successfully.".into(),
@@ -111,12 +161,12 @@ fn engine_status(state: tauri::State<'_, EngineProcess>) -> Result<EngineStatus,
     if guard.is_some() {
         Ok(EngineStatus {
             engine_status: "running".into(),
-            message: "Engine sidecar is active.".into(),
+            message: "Engine is active.".into(),
         })
     } else {
         Ok(EngineStatus {
             engine_status: "idle".into(),
-            message: "Engine sidecar is completely stopped.".into(),
+            message: "Engine is completely stopped.".into(),
         })
     }
 }
