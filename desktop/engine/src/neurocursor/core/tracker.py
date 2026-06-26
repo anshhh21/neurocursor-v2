@@ -105,6 +105,12 @@ class TrackerTelemetry:
 
 def _default_model_path() -> str:
     """Resolve the bundled hand_landmarker.task model."""
+    import sys
+    if hasattr(sys, "_MEIPASS"):
+        # PyInstaller places the data files at the root of MEIPASS 
+        # when we use `--add-data "src/neurocursor/assets/hand_landmarker.task:."`
+        return os.path.join(sys._MEIPASS, "hand_landmarker.task")
+
     return os.path.join(
         os.path.dirname(os.path.dirname(__file__)),  # neurocursor/
         "assets",

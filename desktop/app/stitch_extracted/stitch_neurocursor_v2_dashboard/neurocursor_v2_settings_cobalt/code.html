@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NeuroCursor V2 - Settings</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;family=Inter:wght@100..900&amp;family=JetBrains+Mono:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-tint": "#5c87ff",
+                        "surface-dim": "#131314",
+                        "on-secondary-fixed-variant": "#00522c",
+                        "background": "#131314",
+                        "outline": "#849495",
+                        "surface-container": "#201f20",
+                        "on-primary-fixed-variant": "#003299",
+                        "primary": "#b3c8ff",
+                        "on-surface-variant": "#b9cacb",
+                        "surface-bright": "#3a393a",
+                        "tertiary": "#fcf5ff",
+                        "surface-container-highest": "#353436",
+                        "on-error": "#690005",
+                        "error": "#ffb4ab",
+                        "on-surface": "#e5e2e3",
+                        "on-primary-container": "#dce2ff",
+                        "tertiary-container": "#e2d4ff",
+                        "surface-container-low": "#1c1b1c",
+                        "on-error-container": "#ffdad6",
+                        "on-secondary": "#00391d",
+                        "on-tertiary": "#3c0091",
+                        "primary-fixed": "#aec6ff",
+                        "on-background": "#e5e2e3",
+                        "on-secondary-container": "#00723f",
+                        "primary-fixed-dim": "#5c87ff",
+                        "surface-variant": "#353436",
+                        "secondary": "#f5fff3",
+                        "secondary-container": "#27ff97",
+                        "tertiary-fixed-dim": "#d0bcff",
+                        "outline-variant": "#3a494b",
+                        "on-tertiary-container": "#6f3cd8",
+                        "on-primary-fixed": "#00154d",
+                        "inverse-surface": "#e5e2e3",
+                        "inverse-primary": "#0044b3",
+                        "surface": "#131314",
+                        "secondary-fixed": "#5bffa1",
+                        "secondary-fixed-dim": "#00e383",
+                        "tertiary-fixed": "#e9ddff",
+                        "primary-container": "#0044b3",
+                        "on-secondary-fixed": "#00210e",
+                        "error-container": "#93000a",
+                        "surface-container-lowest": "#0e0e0f",
+                        "on-tertiary-fixed-variant": "#5516be",
+                        "on-tertiary-fixed": "#23005c",
+                        "on-primary": "#00207a",
+                        "surface-container-high": "#2a2a2b",
+                        "inverse-on-surface": "#313031"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "base": "4px",
+                        "gutter": "24px",
+                        "margin": "40px",
+                        "container-max": "1440px"
+                    },
+                    "fontFamily": {
+                        "display": ["Geist"],
+                        "label-mono": ["JetBrains Mono"],
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Geist"],
+                        "headline-lg-mobile": ["Geist"]
+                    },
+                    "fontSize": {
+                        "display": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-mono": ["12px", {"lineHeight": "1.4", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                        "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "headline-lg": ["32px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "1.2", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Custom Scrollbar for a premium feel */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #353436; /* surface-variant */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #849495; /* outline */
+        }
+
+        /* High-end Custom Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            margin-top: -6px; /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
+            box-shadow: 0 0 15px rgba(174, 198, 255, 0.8), inset 0 0 4px rgba(0, 0, 0, 0.5);
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:active {
+            transform: scale(1.2);
+            box-shadow: 0 0 25px rgba(174, 198, 255, 1);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #3a494b; /* outline-variant */
+            border-radius: 2px;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+        
+        /* Toggle Switch Styling */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #5c87ff; /* primary-fixed-dim */
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #0044b3; /* primary-container */
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md text-body-md overflow-hidden selection:bg-primary-fixed/30 selection:text-primary-fixed">
+<!-- Global Background Shader Animation -->
+<div class="fixed inset-0 z-0 pointer-events-none">
+
+<!-- Overlay to ensure readability and establish depth -->
+<div class="absolute inset-0 bg-gradient-to-b from-background/40 via-background/80 to-background z-10"></div>
+</div>
+<div class="relative z-10 flex h-screen w-full">
+<!-- SideNavBar (Shared Component) -->
+<nav class="hidden md:flex flex-col h-screen p-4 space-y-8 docked left-0 w-64 bg-surface-container-low/60 backdrop-blur-2xl border-r border-white/10 flat no shadows shrink-0">
+<!-- Header -->
+<div class="flex items-center gap-3 px-2">
+<div class="w-10 h-10 rounded-full bg-primary-container/20 flex items-center justify-center border border-primary-fixed/30 overflow-hidden shrink-0">
+<span class="material-symbols-outlined text-primary-fixed" style="font-variation-settings: 'FILL' 1;">terminal</span>
+</div>
+<div>
+<h2 class="font-display text-primary-fixed font-bold tracking-tight">Core Engine</h2>
+<p class="font-label-mono text-label-mono text-on-surface-variant">V2.0.4-Stable</p>
+</div>
+</div>
+<!-- Main Tabs -->
+<div class="flex-1 space-y-2">
+<!-- Inactive Tab -->
+<a class="flex items-center gap-3 text-on-surface-variant p-3 hover:bg-white/5 rounded-lg hover:bg-surface-variant/40 transition-all hover:translate-x-1 duration-300" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-mono text-label-mono font-medium">Main</span>
+</a>
+<!-- Active Tab -->
+<a class="flex items-center gap-3 bg-primary-container/20 text-primary-fixed-dim rounded-lg p-3 border border-primary-fixed/30 transition-transform active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="font-label-mono text-label-mono font-bold tracking-wide">Settings</span>
+</a>
+</div>
+<!-- Footer Tabs & CTA -->
+<div class="space-y-4">
+<button class="w-full py-2 px-4 rounded border border-primary-fixed/30 text-primary-fixed font-label-mono text-label-mono uppercase tracking-wider hover:bg-primary-fixed/10 transition-colors">
+                    Calibrate
+                </button>
+<div class="space-y-1">
+<a class="flex items-center gap-3 text-on-surface-variant p-2 hover:bg-white/5 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-sm">description</span>
+<span class="font-label-mono text-label-mono opacity-80">Docs</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant p-2 hover:bg-white/5 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-sm">help</span>
+<span class="font-label-mono text-label-mono opacity-80">Help</span>
+</a>
+</div>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col h-screen overflow-hidden relative">
+<!-- TopNavBar (Shared Component) -->
+<header class="flex justify-between items-center px-margin py-4 w-full bg-surface-container/80 backdrop-blur-xl docked full-width top-0 border-b border-white/20 shadow-[0_0_20px_rgba(92,135,255,0.1)] z-20">
+<!-- Brand / Logo area -->
+<div class="flex items-center gap-4">
+<div class="font-display text-headline-lg-mobile md:text-headline-lg font-bold tracking-tight text-primary-fixed-dim">
+                        NEUROCURSOR V2
+                    </div>
+<!-- AI Status Chip -->
+<div class="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-surface-variant/50 border border-outline/30 ml-4">
+<div class="w-1.5 h-1.5 rounded-full bg-secondary-fixed animate-pulse"></div>
+<span class="font-label-mono text-label-mono text-secondary-fixed">TRACKING ACTIVE</span>
+</div>
+</div>
+<!-- Navigation Links (All Inactive for Settings context) -->
+<nav class="hidden lg:flex items-center gap-8">
+<a class="text-on-surface-variant font-medium hover:text-primary-fixed transition-colors duration-200 active:scale-95 transition-transform font-label-mono text-label-mono uppercase tracking-widest" href="#">Engine</a>
+<a class="text-on-surface-variant font-medium hover:text-primary-fixed transition-colors duration-200 active:scale-95 transition-transform font-label-mono text-label-mono uppercase tracking-widest" href="#">Neural</a>
+<a class="text-on-surface-variant font-medium hover:text-primary-fixed transition-colors duration-200 active:scale-95 transition-transform font-label-mono text-label-mono uppercase tracking-widest" href="#">Cloud</a>
+</nav>
+<!-- Trailing Actions -->
+<div class="flex items-center gap-6">
+<div class="hidden md:flex items-center gap-2 text-primary-fixed opacity-80">
+<span class="material-symbols-outlined animate-spin text-sm" style="animation-duration: 3s;">settings_input_component</span>
+<span class="font-label-mono text-label-mono uppercase tracking-wider">Processing</span>
+</div>
+<div class="flex gap-4">
+<button class="text-on-surface-variant hover:text-primary-fixed transition-colors duration-200 active:scale-95 transition-transform">
+<span class="material-symbols-outlined">settings_input_component</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary-fixed transition-colors duration-200 active:scale-95 transition-transform">
+<span class="material-symbols-outlined">bolt</span>
+</button>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-variant overflow-hidden border border-outline-variant">
+<!-- Profile Image Placeholder -->
+<div class="w-full h-full bg-gradient-to-tr from-primary-container to-tertiary-container opacity-50"></div>
+</div>
+</div>
+</header>
+<!-- Scrollable Settings Area -->
+<div class="flex-1 overflow-y-auto px-4 py-8 md:px-margin md:py-12 z-10">
+<div class="max-w-4xl mx-auto space-y-gutter">
+<!-- Page Header -->
+<div class="mb-10">
+<h1 class="font-display text-display text-primary-fixed mb-2 tracking-tight">System Configuration</h1>
+<p class="text-on-surface-variant max-w-2xl text-lg">Fine-tune hardware acquisition pipelines and neural network inference parameters to perfectly match your kinematic profile.</p>
+</div>
+<!-- Glass Pod: Hardware & Vision -->
+<section class="bg-[#121214]/60 backdrop-blur-[20px] rounded-xl border border-white/10 p-gutter shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+<div class="flex items-center gap-3 mb-6 pb-4 border-b border-white/5">
+<span class="material-symbols-outlined text-primary-fixed">visibility</span>
+<h2 class="font-display text-headline-lg-mobile md:text-headline-lg-mobile text-on-surface font-semibold tracking-tight">Hardware &amp; Vision</h2>
+</div>
+<div class="space-y-8">
+<!-- Input Container -->
+<div>
+<label class="block font-label-mono text-label-mono text-primary-fixed-dim uppercase tracking-wider mb-3">Camera Source</label>
+<div class="relative">
+<select class="w-full bg-[#0A0A0B]/80 border border-outline-variant rounded-lg p-4 text-on-surface font-medium focus:border-primary-fixed focus:ring-1 focus:ring-primary-fixed outline-none appearance-none transition-colors">
+<option>Integrated Webcam (1080p, 60fps)</option>
+<option>External Capture Device (4K, 30fps)</option>
+<option>Neural Emulation Feed</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-on-surface-variant">
+<span class="material-symbols-outlined">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Toggle Container -->
+<div class="flex items-center justify-between p-4 bg-surface-container-low/50 rounded-lg border border-white/5">
+<div>
+<h3 class="font-medium text-on-surface mb-1">Mirror Preview</h3>
+<p class="text-sm text-on-surface-variant font-label-mono">Invert horizontal axis in diagnostic overlays.</p>
+</div>
+<div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 top-0 left-0 transition-transform duration-200" id="toggle1" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-variant cursor-pointer transition-colors duration-200" for="toggle1"></label>
+</div>
+</div>
+</div>
+</section>
+<!-- Glass Pod: Neural Dynamics -->
+<section class="bg-[#121214]/60 backdrop-blur-[20px] rounded-xl border border-white/10 p-gutter shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+<div class="flex items-center gap-3 mb-6 pb-4 border-b border-white/5">
+<span class="material-symbols-outlined text-primary-fixed">moving</span>
+<h2 class="font-display text-headline-lg-mobile md:text-headline-lg-mobile text-on-surface font-semibold tracking-tight">Neural Dynamics</h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+<!-- Slider Block -->
+<div class="space-y-4">
+<div class="flex justify-between items-end">
+<label class="font-label-mono text-label-mono text-primary-fixed-dim uppercase tracking-wider">Cursor Sensitivity</label>
+<span class="font-label-mono text-on-surface bg-surface-container-highest px-2 py-0.5 rounded text-xs border border-white/10" id="val-sens">2.4x</span>
+</div>
+<div class="relative pt-2 pb-4">
+<input class="w-full" max="5.0" min="0.1" oninput="document.getElementById('val-sens').innerText = this.value + 'x'" step="0.1" type="range" value="2.4"/>
+</div>
+<p class="text-xs text-on-surface-variant font-label-mono opacity-80">Multiplies raw coordinate translation distance.</p>
+</div>
+<!-- Slider Block -->
+<div class="space-y-4">
+<div class="flex justify-between items-end">
+<label class="font-label-mono text-label-mono text-primary-fixed-dim uppercase tracking-wider">Smoothing (Kalman Filter)</label>
+<span class="font-label-mono text-on-surface bg-surface-container-highest px-2 py-0.5 rounded text-xs border border-white/10" id="val-smooth">60%</span>
+</div>
+<div class="relative pt-2 pb-4">
+<input class="w-full" max="100" min="0" oninput="document.getElementById('val-smooth').innerText = this.value + '%'" type="range" value="60"/>
+</div>
+<p class="text-xs text-on-surface-variant font-label-mono opacity-80">Higher values reduce jitter but increase latency.</p>
+</div>
+</div>
+</section>
+<!-- Glass Pod: Interaction Thresholds -->
+<section class="bg-[#121214]/60 backdrop-blur-[20px] rounded-xl border border-white/10 p-gutter shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+<div class="flex items-center gap-3 mb-6 pb-4 border-b border-white/5">
+<span class="material-symbols-outlined text-primary-fixed">touch_app</span>
+<h2 class="font-display text-headline-lg-mobile md:text-headline-lg-mobile text-on-surface font-semibold tracking-tight">Interaction Thresholds</h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+<!-- Slider Block -->
+<div class="space-y-4">
+<div class="flex justify-between items-end">
+<label class="font-label-mono text-label-mono text-primary-fixed-dim uppercase tracking-wider">Click Sensitivity (Pinch)</label>
+<span class="font-label-mono text-on-surface bg-surface-container-highest px-2 py-0.5 rounded text-xs border border-white/10" id="val-click-sens">0.85</span>
+</div>
+<div class="relative pt-2 pb-4">
+<input class="w-full" max="1.0" min="0.5" oninput="document.getElementById('val-click-sens').innerText = this.value" step="0.01" type="range" value="0.85"/>
+</div>
+<p class="text-xs text-on-surface-variant font-label-mono opacity-80">Confidence threshold for triggering a primary click.</p>
+</div>
+<!-- Slider Block -->
+<div class="space-y-4">
+<div class="flex justify-between items-end">
+<label class="font-label-mono text-label-mono text-primary-fixed-dim uppercase tracking-wider">Click Hold Time</label>
+<span class="font-label-mono text-on-surface bg-surface-container-highest px-2 py-0.5 rounded text-xs border border-white/10" id="val-hold">250ms</span>
+</div>
+<div class="relative pt-2 pb-4">
+<input class="w-full" max="1000" min="50" oninput="document.getElementById('val-hold').innerText = this.value + 'ms'" step="10" type="range" value="250"/>
+</div>
+</div>
+<!-- Slider Block -->
+<div class="space-y-4">
+<div class="flex justify-between items-end">
+<label class="font-label-mono text-label-mono text-primary-fixed-dim uppercase tracking-wider">Click Cooldown</label>
+<span class="font-label-mono text-on-surface bg-surface-container-highest px-2 py-0.5 rounded text-xs border border-white/10" id="val-cool">100ms</span>
+</div>
+<div class="relative pt-2 pb-4">
+<input class="w-full" max="500" min="0" oninput="document.getElementById('val-cool').innerText = this.value + 'ms'" step="10" type="range" value="100"/>
+</div>
+<p class="text-xs text-on-surface-variant font-label-mono opacity-80">Prevents accidental double-clicks.</p>
+</div>
+<!-- Slider Block -->
+<div class="space-y-4">
+<div class="flex justify-between items-end">
+<label class="font-label-mono text-label-mono text-primary-fixed-dim uppercase tracking-wider">Pause Gesture Time</label>
+<span class="font-label-mono text-on-surface bg-surface-container-highest px-2 py-0.5 rounded text-xs border border-white/10" id="val-pause">1.5s</span>
+</div>
+<div class="relative pt-2 pb-4">
+<input class="w-full" max="3.0" min="0.5" oninput="document.getElementById('val-pause').innerText = this.value + 's'" step="0.1" type="range" value="1.5"/>
+</div>
+</div>
+</div>
+</section>
+<!-- Action Footer -->
+<div class="pt-8 pb-12 flex justify-between items-center border-t border-white/5">
+<button class="px-6 py-3 rounded-lg border border-primary-fixed/30 text-primary-fixed font-label-mono text-label-mono uppercase tracking-widest hover:bg-primary-fixed/10 transition-colors bg-transparent shadow-[0_0_15px_rgba(174,198,255,0.05)] hover:shadow-[0_0_20px_rgba(174,198,255,0.1)]">
+                            Reset Defaults
+                        </button>
+<button class="px-8 py-3 rounded-lg bg-gradient-to-r from-surface-tint to-tertiary-container text-on-primary-fixed font-label-mono text-label-mono uppercase font-bold tracking-widest shadow-[0_0_20px_rgba(92,135,255,0.3)] hover:shadow-[0_0_30px_rgba(92,135,255,0.5)] hover:brightness-110 transition-all">
+                            Save Configuration
+                        </button>
+</div>
+</div>
+</div>
+<!-- Footer (Shared Component) mapped to bottom of scroll area -->
+<footer class="bg-surface-container-lowest/90 backdrop-blur-md border-t border-white/10 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] w-full flex justify-between items-center px-margin py-2 z-20 shrink-0">
+<div class="font-label-mono text-secondary-fixed text-label-mono">
+                    © 2024 NEUROCURSOR. AI ACTIVE.
+                </div>
+<div class="flex gap-6">
+<span class="font-label-mono text-label-mono text-on-surface-variant/60 cursor-default hover:text-secondary-fixed transition-colors">Uptime: 99.9%</span>
+<span class="font-label-mono text-label-mono text-on-surface-variant/60 cursor-default hover:text-secondary-fixed transition-colors">Latency: 4ms</span>
+<span class="font-label-mono text-label-mono text-on-surface-variant/60 cursor-default hover:text-secondary-fixed transition-colors">Load: 12%</span>
+</div>
+</footer>
+</main>
+</div>
+</body></html>

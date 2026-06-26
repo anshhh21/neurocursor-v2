@@ -18,6 +18,7 @@ engine = [
 ]
 dev = [
   "pytest",
+  "pyinstaller",
 ]
 
 [project.scripts]

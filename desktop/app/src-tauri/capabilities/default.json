@@ -3,5 +3,18 @@
   "identifier": "default",
   "description": "Default permissions for the main NeuroCursor window.",
   "windows": ["main"],
-  "permissions": []
+  "permissions": [
+    "core:default",
+    "shell:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "engine",
+          "cmd": "",
+          "sidecar": true
+        }
+      ]
+    }
+  ]
 }
