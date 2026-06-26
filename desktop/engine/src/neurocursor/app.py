@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import base64
 import json
+import queue
 import signal
 import sys
+import threading
 import time
 
 # Flag set by SIGTERM / SIGINT handlers so the main loop exits cleanly.
@@ -27,6 +29,27 @@ def _emit(event_type: str, data: dict) -> None:
         pass
 
 
+# --- Stdin command queue -----------------------------------------------------
+# A background thread reads JSON-line commands from stdin and puts them on
+# this queue so the main loop can drain them without ever blocking.
+_cmd_queue: queue.Queue = queue.Queue()
+
+
+def _stdin_reader() -> None:
+    """Read lines from stdin and enqueue parsed JSON objects."""
+    try:
+        for raw_line in sys.stdin:
+            raw_line = raw_line.strip()
+            if not raw_line:
+                continue
+            try:
+                _cmd_queue.put(json.loads(raw_line))
+            except json.JSONDecodeError:
+                pass
+    except Exception:
+        pass  # stdin closed or broken — just stop reading
+
+
 def run() -> int:
     """Start the engine process.
 
@@ -46,6 +69,9 @@ def run() -> int:
     signal.signal(signal.SIGTERM, _handle_signal)
     signal.signal(signal.SIGINT, _handle_signal)
 
+    # Start the stdin reader thread immediately.
+    threading.Thread(target=_stdin_reader, daemon=True).start()
+
     # --- Startup handshake (INSTANT — before heavy imports) ------------------
     from neurocursor import __version__
 
@@ -59,7 +85,7 @@ def run() -> int:
 
     from dataclasses import asdict
     import cv2
-    from neurocursor.core.settings import EngineSettings
+    from neurocursor.core.settings import EngineSettings, GestureSettings
     from neurocursor.core.camera import Camera
     from neurocursor.core.tracker import Tracker
     from neurocursor.core.gestures import GestureClassifier
@@ -105,25 +131,28 @@ def run() -> int:
     PREVIEW_HEIGHT = 240
 
     try:
-        _user_paused = False
-        last_gesture_state = None
+        global _shutdown
         _user_paused = False
         last_gesture_state = None
 
         while not _shutdown:
-            # Check for incoming commands on stdin
+            # Drain any commands that arrived from stdin
             while not _cmd_queue.empty():
-                cmd = _cmd_queue.get_nowait()
-                if cmd.get("action") == "shutdown":
+                try:
+                    cmd = _cmd_queue.get_nowait()
+                except queue.Empty:
+                    break
+                action = cmd.get("action")
+                if action == "shutdown":
                     _shutdown = True
-                elif cmd.get("action") == "set_settings":
+                elif action == "set_settings":
                     try:
                         s = GestureSettings(**cmd.get("payload", {}))
                         gestures.update_settings(s)
                         cursor.update_settings(s)
                     except Exception:
                         pass
-                elif cmd.get("action") == "toggle_pause":
+                elif action == "toggle_pause":
                     _user_paused = cmd.get("payload", {}).get("paused", False)
 
             hand = None

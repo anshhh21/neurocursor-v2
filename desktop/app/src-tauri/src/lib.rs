@@ -55,6 +55,7 @@ fn start_engine(
         .arg("neurocursor")
         .env("PYTHONPATH", &engine_src)
         .current_dir(&engine_dir)
+        .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()
@@ -176,6 +177,7 @@ fn engine_status(state: tauri::State<'_, EngineProcess>) -> Result<EngineStatus,
 fn toggle_pause(
     app_handle: AppHandle,
     pause_state: tauri::State<'_, PauseState>,
+    engine_state: tauri::State<'_, EngineProcess>,
 ) -> Result<bool, String> {
     let mut paused = pause_state
         .0
@@ -183,6 +185,21 @@ fn toggle_pause(
         .map_err(|e| format!("Lock poisoned: {}", e))?;
     *paused = !*paused;
     let is_paused = *paused;
+
+    // Send the pause command to the Python engine via stdin
+    if let Ok(mut guard) = engine_state.0.lock() {
+        if let Some(ref mut child) = *guard {
+            if let Some(ref mut stdin) = child.stdin {
+                use std::io::Write;
+                let cmd = serde_json::json!({
+                    "action": "toggle_pause",
+                    "payload": { "paused": is_paused }
+                });
+                let _ = writeln!(stdin, "{}", cmd);
+                let _ = stdin.flush();
+            }
+        }
+    }
 
     // Emit the pause state to the frontend
     let _ = app_handle.emit("engine-event", &serde_json::json!({
