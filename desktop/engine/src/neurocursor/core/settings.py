@@ -35,8 +35,10 @@ class GestureSettings:
 
     cursor_sensitivity: float = 2.4
     smoothing_factor: float = 0.6
-    pinch_threshold: float = 0.04  # normalized hand-scale distance
-    pinch_release_threshold: float = 0.06
+    pinch_threshold: float = 0.28  # normalized hand-scale distance (thumb-index close)
+    pinch_release_threshold: float = 0.38  # release when fingers separate
+    pause_enter_threshold: float = 0.85  # tight fist only
+    pause_exit_threshold: float = 1.15  # open hand to resume
 
 
 @dataclass

@@ -26,6 +26,13 @@ type TrackingTelemetry = {
   handScale: number;
 };
 
+type GestureTelemetry = {
+  isPinching: boolean;
+  isPaused: boolean;
+  pinchValue: number;
+  fistValue: number;
+};
+
 type Status = "idle" | "checking" | "loading" | "ready" | "error" | "stopping";
 
 export default function App() {
@@ -48,6 +55,13 @@ export default function App() {
     handScale: 0,
   });
   const [trackerStatus, setTrackerStatus] = useState<string>("offline");
+  const [gesture, setGesture] = useState<GestureTelemetry>({
+    isPinching: false,
+    isPaused: false,
+    pinchValue: 0.0,
+    fistValue: 0.0,
+  });
+  const [userPaused, setUserPaused] = useState(false);
   const [videoFrame, setVideoFrame] = useState<string>("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const unlistenRef = useRef<UnlistenFn | null>(null);
@@ -74,6 +88,12 @@ export default function App() {
             handedness: (payload.handedness as string) ?? "",
             handScale: (payload.hand_scale as number) ?? 0,
           });
+          setGesture({
+            isPinching: (payload.is_pinching as boolean) ?? false,
+            isPaused: (payload.is_paused as boolean) ?? false,
+            pinchValue: (payload.pinch_value as number) ?? 0.0,
+            fistValue: (payload.fist_value as number) ?? 0.0,
+          });
         } else if (payload.type === "camera") {
           const camStatus = payload.status as string;
           setCameraStatus(camStatus);
@@ -85,6 +105,8 @@ export default function App() {
           setTrackerStatus(trkStatus);
         } else if (payload.type === "video_frame") {
           setVideoFrame(payload.data as string);
+        } else if (payload.type === "pause_state") {
+          setUserPaused(payload.is_paused as boolean);
         } else if (payload.type === "status") {
           const phase = payload.phase as string;
           if (phase === "loading") {
@@ -126,9 +148,11 @@ export default function App() {
             setMessage(res.message);
             setTelemetry({ fps: 0, frameCount: 0, isOpen: false, resolution: "0x0" });
             setTracking({ handsDetected: 0, confidence: 0, handedness: "", handScale: 0 });
+            setGesture({ isPinching: false, isPaused: false, pinchValue: 0, fistValue: 0 });
             setCameraStatus("offline");
             setTrackerStatus("offline");
             setVideoFrame("");
+            setUserPaused(false);
           }
         } catch {
           setStatus("error");
@@ -474,7 +498,7 @@ export default function App() {
 
             {/* Gesture Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter h-48">
-              <div className="glass-panel p-6 rounded-xl flex flex-col justify-between hover:bg-surface-variant/20 group cursor-pointer border border-white/5 hover:border-surface-tint/30 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(59,130,246,0.2)] transition-all duration-300">
+              <div className={`glass-panel p-6 rounded-xl flex flex-col justify-between hover:bg-surface-variant/20 group cursor-pointer border hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(59,130,246,0.2)] transition-all duration-300 ${userPaused ? "border-white/5 opacity-50 grayscale" : "border-white/5 hover:border-surface-tint/30"}`}>
                 <div className="flex justify-between items-start">
                   <div className="w-10 h-10 rounded-lg bg-surface-container-highest flex items-center justify-center text-primary-fixed group-hover:scale-110 transition-transform">
                     <span className="material-symbols-outlined">pan_tool</span>
@@ -487,12 +511,21 @@ export default function App() {
                 </div>
               </div>
               
-              <div className="glass-panel p-6 rounded-xl flex flex-col justify-between hover:bg-surface-variant/20 group cursor-pointer border border-white/5 hover:border-surface-tint/30 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(59,130,246,0.2)] transition-all duration-300">
+              <div className={`glass-panel p-6 rounded-xl flex flex-col justify-between hover:bg-surface-variant/20 group cursor-pointer border hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(59,130,246,0.2)] transition-all duration-300 ${gesture.isPinching && !userPaused ? "bg-primary-fixed/10 border-primary-fixed/50" : userPaused ? "border-white/5 opacity-50 grayscale" : "border-white/5 hover:border-surface-tint/30"}`}>
                 <div className="flex justify-between items-start">
                   <div className="w-10 h-10 rounded-lg bg-surface-container-highest flex items-center justify-center text-primary-fixed group-hover:scale-110 transition-transform">
                     <span className="material-symbols-outlined">touch_app</span>
                   </div>
-                  <span className="font-label-mono text-[10px] text-primary-fixed bg-primary-fixed/10 px-2 py-1 rounded">MAPPED</span>
+                  <div className="flex items-center gap-2">
+                    {engineActive && tracking.handsDetected > 0 && !userPaused && (
+                      <span className="font-label-mono text-[10px] text-on-surface-variant/70 bg-surface-container px-2 py-1 rounded border border-white/5">
+                        {gesture.pinchValue.toFixed(3)}
+                      </span>
+                    )}
+                    <span className={`font-label-mono text-[10px] px-2 py-1 rounded ${gesture.isPinching && !userPaused ? "bg-primary-fixed text-on-primary-fixed" : "text-primary-fixed bg-primary-fixed/10"}`}>
+                      {gesture.isPinching && !userPaused ? "CLICKING" : "MAPPED"}
+                    </span>
+                  </div>
                 </div>
                 <div>
                   <h3 className="font-display text-lg font-semibold text-on-surface mb-1 group-hover:text-primary-fixed transition-colors">Click Action</h3>
@@ -500,16 +533,30 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="glass-panel p-6 rounded-xl flex flex-col justify-between hover:bg-surface-variant/20 group cursor-pointer border border-white/5 hover:border-surface-tint/30 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(59,130,246,0.2)] transition-all duration-300">
+              <div 
+                onClick={handleTogglePause}
+                className={`glass-panel p-6 rounded-xl flex flex-col justify-between hover:bg-surface-variant/20 group cursor-pointer border hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(59,130,246,0.2)] transition-all duration-300 ${userPaused || gesture.isPaused ? "bg-error/10 border-error/50" : "border-white/5 hover:border-surface-tint/30"}`}
+              >
                 <div className="flex justify-between items-start">
-                  <div className="w-10 h-10 rounded-lg bg-surface-container-highest flex items-center justify-center text-on-surface-variant group-hover:scale-110 transition-transform">
-                    <span className="material-symbols-outlined">front_hand</span>
+                  <div className={`w-10 h-10 rounded-lg bg-surface-container-highest flex items-center justify-center group-hover:scale-110 transition-transform ${userPaused || gesture.isPaused ? "text-error" : "text-on-surface-variant"}`}>
+                    <span className="material-symbols-outlined">{userPaused || gesture.isPaused ? "front_hand" : "waving_hand"}</span>
                   </div>
-                  <span className="font-label-mono text-[10px] text-on-surface-variant bg-surface-variant px-2 py-1 rounded">STANDBY</span>
+                  <div className="flex items-center gap-2">
+                    {engineActive && tracking.handsDetected > 0 && !userPaused && (
+                      <span className="font-label-mono text-[10px] text-on-surface-variant/70 bg-surface-container px-2 py-1 rounded border border-white/5">
+                        {gesture.fistValue.toFixed(3)}
+                      </span>
+                    )}
+                    <span className={`font-label-mono text-[10px] px-2 py-1 rounded ${(userPaused || gesture.isPaused) ? "text-error bg-error/20" : "text-on-surface-variant bg-surface-variant"}`}>
+                      {(userPaused || gesture.isPaused) ? "PAUSED" : "STANDBY"}
+                    </span>
+                  </div>
                 </div>
                 <div>
-                  <h3 className="font-display text-lg font-semibold text-on-surface mb-1 group-hover:text-primary-fixed transition-colors">Pause Engine</h3>
-                  <p className="font-body-md text-sm text-on-surface-variant/70">Closed fist gesture to temporarily halt neural processing.</p>
+                  <h3 className={`font-display text-lg font-semibold mb-1 transition-colors ${userPaused || gesture.isPaused ? "text-error" : "text-on-surface group-hover:text-primary-fixed"}`}>
+                    {userPaused ? "Engine Paused" : "Pause Engine"}
+                  </h3>
+                  <p className="font-body-md text-sm text-on-surface-variant/70">Closed fist gesture or click here to temporarily halt neural processing.</p>
                 </div>
               </div>
             </div>

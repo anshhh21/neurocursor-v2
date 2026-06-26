@@ -20,6 +20,7 @@ struct EngineEvent {
 }
 
 struct EngineProcess(Arc<Mutex<Option<Child>>>);
+struct PauseState(Arc<Mutex<bool>>);
 
 #[tauri::command]
 fn start_engine(
@@ -171,15 +172,38 @@ fn engine_status(state: tauri::State<'_, EngineProcess>) -> Result<EngineStatus,
     }
 }
 
+#[tauri::command]
+fn toggle_pause(
+    app_handle: AppHandle,
+    pause_state: tauri::State<'_, PauseState>,
+) -> Result<bool, String> {
+    let mut paused = pause_state
+        .0
+        .lock()
+        .map_err(|e| format!("Lock poisoned: {}", e))?;
+    *paused = !*paused;
+    let is_paused = *paused;
+
+    // Emit the pause state to the frontend
+    let _ = app_handle.emit("engine-event", &serde_json::json!({
+        "type": "pause_state",
+        "is_paused": is_paused
+    }));
+
+    Ok(is_paused)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .manage(EngineProcess(Arc::new(Mutex::new(None))))
+        .manage(PauseState(Arc::new(Mutex::new(false))))
         .invoke_handler(tauri::generate_handler![
             start_engine,
             stop_engine,
-            engine_status
+            engine_status,
+            toggle_pause
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

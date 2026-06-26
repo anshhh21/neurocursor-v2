@@ -3,7 +3,7 @@
 Takes raw MediaPipe HandResult data and turns it into semantic states:
 - Moving (base state)
 - Pinching (for clicking/dragging)
-- Paused (fist)
+- Paused (tight fist — all fingers curled in)
 
 Uses hysteresis (different enter/exit thresholds) to prevent flickering
 when the hand is near a threshold boundary.
@@ -37,6 +37,9 @@ class GestureState:
     # The normalized coordinate to use for the cursor (usually index tip)
     pointer_x: float = 0.0
     pointer_y: float = 0.0
+    # Debug values for telemetry
+    pinch_value: float = 0.0
+    fist_value: float = 0.0
 
 
 def _distance(a: Point, b: Point) -> float:
@@ -62,7 +65,7 @@ class GestureClassifier:
         pointer_x = hand.index_tip.x
         pointer_y = hand.index_tip.y
 
-        # --- 1. Detect Pause (Closed Fist) ---
+        # --- 1. Detect Pause (Tight Closed Fist) ---
         # A flat hand has fingertips far from the wrist.
         # A closed fist brings fingertips close to the wrist.
         # We average the distance of all four fingers from the wrist and
@@ -73,21 +76,19 @@ class GestureClassifier:
         d_pinky = _distance(hand.wrist, hand.landmarks[PINKY_TIP])
 
         avg_dist = (d_index + d_middle + d_ring + d_pinky) / 4.0
-        normalized_avg_dist = avg_dist / hand.hand_scale
+        normalized_avg_dist = avg_dist / hand.hand_scale if hand.hand_scale > 0 else 999.0
 
-        # Hysteresis for pause:
-        # Enter pause if avg distance is very small (< 1.6x scale)
-        # Exit pause if hand opens up a bit (> 1.9x scale)
+        # Hysteresis for pause using settings thresholds
         if not self._is_paused:
-            if normalized_avg_dist < 1.6:
+            if normalized_avg_dist < self._settings.pause_enter_threshold:
                 self._is_paused = True
         else:
-            if normalized_avg_dist > 1.9:
+            if normalized_avg_dist > self._settings.pause_exit_threshold:
                 self._is_paused = False
 
         # --- 2. Detect Pinch (Click) ---
         pinch_dist = _distance(hand.thumb_tip, hand.index_tip)
-        normalized_pinch = pinch_dist / hand.hand_scale
+        normalized_pinch = pinch_dist / hand.hand_scale if hand.hand_scale > 0 else 999.0
 
         if not self._is_pinching:
             if normalized_pinch < self._settings.pinch_threshold:
@@ -105,4 +106,6 @@ class GestureClassifier:
             is_paused=self._is_paused,
             pointer_x=pointer_x,
             pointer_y=pointer_y,
+            pinch_value=round(normalized_pinch, 3),
+            fist_value=round(normalized_avg_dist, 3),
         )

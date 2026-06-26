@@ -105,6 +105,9 @@ def run() -> int:
     PREVIEW_HEIGHT = 240
 
     try:
+        _user_paused = False
+        last_gesture_state = None
+
         while not _shutdown:
             hand = None
             current_frame = None
@@ -128,18 +131,18 @@ def run() -> int:
             # Process hand gestures and move cursor
             if hand is not None:
                 # 1. Classify Gestures
-                state = gestures.process(hand)
+                last_gesture_state = gestures.process(hand)
 
-                if state.is_paused:
-                    # Hand is a fist. Release click if active, reset smoothing memory.
+                if _user_paused or last_gesture_state.is_paused:
+                    # Paused (user toggle or fist gesture). Release click, reset smoothing.
                     cursor.release_all()
                     smoother.reset()
                 else:
                     # 2. Smooth the movement
-                    smoothed = smoother.process(state.pointer_x, state.pointer_y)
+                    smoothed = smoother.process(last_gesture_state.pointer_x, last_gesture_state.pointer_y)
 
                     # 3. Control the OS mouse
-                    cursor.process(smoothed, state.is_pinching)
+                    cursor.process(smoothed, last_gesture_state.is_pinching)
             else:
                 # No hand detected. Release click and reset smoothing memory.
                 cursor.release_all()
@@ -189,7 +192,15 @@ def run() -> int:
             if now - last_telemetry >= telemetry_interval:
                 cam_telem = asdict(camera.telemetry())
                 trk_telem = asdict(tracker.telemetry())
-                _emit("telemetry", {**cam_telem, **trk_telem})
+                gesture_telem = {}
+                if hand is not None:
+                    gesture_telem = {
+                        "is_pinching": last_gesture_state.is_pinching if last_gesture_state else False,
+                        "is_paused": last_gesture_state.is_paused if last_gesture_state else False,
+                        "pinch_value": last_gesture_state.pinch_value if last_gesture_state else 0.0,
+                        "fist_value": last_gesture_state.fist_value if last_gesture_state else 0.0,
+                    }
+                _emit("telemetry", {**cam_telem, **trk_telem, **gesture_telem})
                 last_telemetry = now
 
             # If the camera is not open, throttle the loop to avoid spinning.
