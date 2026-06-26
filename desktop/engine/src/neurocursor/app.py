@@ -107,8 +107,25 @@ def run() -> int:
     try:
         _user_paused = False
         last_gesture_state = None
+        _user_paused = False
+        last_gesture_state = None
 
         while not _shutdown:
+            # Check for incoming commands on stdin
+            while not _cmd_queue.empty():
+                cmd = _cmd_queue.get_nowait()
+                if cmd.get("action") == "shutdown":
+                    _shutdown = True
+                elif cmd.get("action") == "set_settings":
+                    try:
+                        s = GestureSettings(**cmd.get("payload", {}))
+                        gestures.update_settings(s)
+                        cursor.update_settings(s)
+                    except Exception:
+                        pass
+                elif cmd.get("action") == "toggle_pause":
+                    _user_paused = cmd.get("payload", {}).get("paused", False)
+
             hand = None
             current_frame = None
 
