@@ -26,7 +26,7 @@ type TrackingTelemetry = {
   handScale: number;
 };
 
-type Status = "idle" | "checking" | "ready" | "error" | "stopping";
+type Status = "idle" | "checking" | "loading" | "ready" | "error" | "stopping";
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<"main" | "settings">("main");
@@ -48,10 +48,11 @@ export default function App() {
     handScale: 0,
   });
   const [trackerStatus, setTrackerStatus] = useState<string>("offline");
+  const [videoFrame, setVideoFrame] = useState<string>("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const unlistenRef = useRef<UnlistenFn | null>(null);
 
-  // Listen for engine events (telemetry, camera status) from the Rust backend.
+  // Listen for engine events (telemetry, camera status, video frames) from the Rust backend.
   useEffect(() => {
     let cancelled = false;
 
@@ -82,6 +83,17 @@ export default function App() {
         } else if (payload.type === "tracker") {
           const trkStatus = payload.status as string;
           setTrackerStatus(trkStatus);
+        } else if (payload.type === "video_frame") {
+          setVideoFrame(payload.data as string);
+        } else if (payload.type === "status") {
+          const phase = payload.phase as string;
+          if (phase === "loading") {
+            setStatus("loading");
+            setMessage(payload.message as string);
+          } else if (phase === "models_loaded") {
+            setStatus("ready");
+            setMessage(payload.message as string);
+          }
         }
       });
 
@@ -105,7 +117,7 @@ export default function App() {
 
   // Poll engine status every 3 seconds while engine is running.
   useEffect(() => {
-    if (status === "ready") {
+    if (status === "ready" || status === "loading") {
       pollRef.current = setInterval(async () => {
         try {
           const res = await invoke<EngineStatusResponse>("engine_status");
@@ -116,6 +128,7 @@ export default function App() {
             setTracking({ handsDetected: 0, confidence: 0, handedness: "", handScale: 0 });
             setCameraStatus("offline");
             setTrackerStatus("offline");
+            setVideoFrame("");
           }
         } catch {
           setStatus("error");
@@ -140,7 +153,9 @@ export default function App() {
     try {
       const response = await invoke<EngineStatusResponse>("start_engine");
       if (response.engineStatus === "ready" || response.engineStatus === "running") {
-        setStatus("ready");
+        // Don't immediately set "ready" — wait for the "status" event from engine
+        // which will transition: checking -> loading -> ready
+        setStatus("loading");
       } else {
         setStatus("error");
       }
@@ -163,6 +178,7 @@ export default function App() {
       setTracking({ handsDetected: 0, confidence: 0, handedness: "", handScale: 0 });
       setCameraStatus("offline");
       setTrackerStatus("offline");
+      setVideoFrame("");
     } catch (err) {
       setStatus("error");
       setMessage(String(err));
@@ -172,6 +188,7 @@ export default function App() {
   const statusLabel = {
     idle: "Idle",
     checking: "Starting",
+    loading: "Loading",
     ready: "Active",
     error: "Error",
     stopping: "Stopping",
@@ -180,6 +197,7 @@ export default function App() {
   const statusDotColor = {
     idle: "bg-surface-variant",
     checking: "bg-primary-fixed pulse-dot",
+    loading: "bg-tertiary-fixed-dim pulse-dot",
     ready: "bg-secondary-fixed pulse-dot",
     error: "bg-error",
     stopping: "bg-tertiary-fixed-dim pulse-dot",
@@ -188,14 +206,17 @@ export default function App() {
   const statusTextColor = {
     idle: "text-on-surface-variant",
     checking: "text-primary-fixed",
+    loading: "text-tertiary-fixed-dim",
     ready: "text-secondary-fixed",
     error: "text-error",
     stopping: "text-tertiary-fixed-dim",
   }[status];
 
+  const engineActive = status === "ready" || status === "loading";
   const cameraIsLive = status === "ready" && telemetry.isOpen;
   const handDetected = cameraIsLive && tracking.handsDetected > 0;
   const confidencePct = Math.round(tracking.confidence * 100);
+  const hasVideoFrame = videoFrame.length > 0;
 
   return (
     <div className="bg-background text-on-surface h-screen w-screen overflow-hidden flex font-body-md text-body-md selection:bg-surface-tint/30 selection:text-primary relative">
@@ -244,39 +265,43 @@ export default function App() {
             </div>
             
             {/* Live telemetry in sidebar when engine is active */}
-            {status === "ready" && (
+            {engineActive && (
               <div className="space-y-2 pt-1 border-t border-white/5">
                 <div className="flex justify-between items-center">
                   <span className="font-label-mono text-[10px] text-on-surface-variant/60 uppercase">Camera</span>
-                  <span className={`font-label-mono text-[10px] ${cameraIsLive ? "text-secondary-fixed" : "text-error"}`}>
-                    {cameraIsLive ? "Live" : cameraStatus === "failed" ? "Failed" : "Offline"}
+                  <span className={`font-label-mono text-[10px] ${cameraIsLive ? "text-secondary-fixed" : status === "loading" ? "text-tertiary-fixed-dim" : "text-error"}`}>
+                    {cameraIsLive ? "Live" : status === "loading" ? "Loading..." : cameraStatus === "failed" ? "Failed" : "Offline"}
                   </span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="font-label-mono text-[10px] text-on-surface-variant/60 uppercase">FPS</span>
-                  <span className="font-label-mono text-[10px] text-primary-fixed">{telemetry.fps}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="font-label-mono text-[10px] text-on-surface-variant/60 uppercase">Resolution</span>
-                  <span className="font-label-mono text-[10px] text-on-surface-variant">{telemetry.resolution}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="font-label-mono text-[10px] text-on-surface-variant/60 uppercase">Hand</span>
-                  <span className={`font-label-mono text-[10px] ${handDetected ? "text-secondary-fixed" : "text-on-surface-variant/40"}`}>
-                    {handDetected ? `${tracking.handedness} · ${confidencePct}%` : "No Hand"}
-                  </span>
-                </div>
-                {handDetected && (
-                  <div className="flex justify-between items-center">
-                    <span className="font-label-mono text-[10px] text-on-surface-variant/60 uppercase">Scale</span>
-                    <span className="font-label-mono text-[10px] text-on-surface-variant">{tracking.handScale.toFixed(3)}</span>
-                  </div>
+                {cameraIsLive && (
+                  <>
+                    <div className="flex justify-between items-center">
+                      <span className="font-label-mono text-[10px] text-on-surface-variant/60 uppercase">FPS</span>
+                      <span className="font-label-mono text-[10px] text-primary-fixed">{telemetry.fps}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-label-mono text-[10px] text-on-surface-variant/60 uppercase">Resolution</span>
+                      <span className="font-label-mono text-[10px] text-on-surface-variant">{telemetry.resolution}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-label-mono text-[10px] text-on-surface-variant/60 uppercase">Hand</span>
+                      <span className={`font-label-mono text-[10px] ${handDetected ? "text-secondary-fixed" : "text-on-surface-variant/40"}`}>
+                        {handDetected ? `${tracking.handedness} · ${confidencePct}%` : "No Hand"}
+                      </span>
+                    </div>
+                    {handDetected && (
+                      <div className="flex justify-between items-center">
+                        <span className="font-label-mono text-[10px] text-on-surface-variant/60 uppercase">Scale</span>
+                        <span className="font-label-mono text-[10px] text-on-surface-variant">{tracking.handScale.toFixed(3)}</span>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
 
             <div className="pt-2 space-y-2">
-              {status === "ready" ? (
+              {engineActive ? (
                 <button 
                   onClick={handleStopEngine}
                   className="w-full py-2 bg-gradient-to-r from-error/80 to-error-container/40 rounded-lg text-on-error-container font-medium text-sm border border-error/50 hover:opacity-90 transition-opacity flex justify-center items-center gap-2 cursor-pointer"
@@ -312,10 +337,10 @@ export default function App() {
             <h2 className="font-display text-headline-lg font-bold tracking-tight text-primary-fixed-dim">NEUROCURSOR V2</h2>
           </div>
           <div className="flex items-center gap-4">
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${status === "ready" ? "bg-secondary-container/20 border-secondary-fixed/30" : "bg-surface-container-highest border-white/10"}`}>
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${engineActive ? "bg-secondary-container/20 border-secondary-fixed/30" : "bg-surface-container-highest border-white/10"}`}>
               <span className={`w-2 h-2 rounded-full ${statusDotColor}`}></span>
               <span className={`font-label-mono text-label-mono ${statusTextColor}`}>
-                {status === "ready" ? "Engine Online" : status === "checking" ? "Connecting..." : status === "stopping" ? "Shutting Down" : status === "error" ? "Engine Error" : "Engine Offline"}
+                {status === "ready" ? "Engine Online" : status === "loading" ? "Loading Models..." : status === "checking" ? "Connecting..." : status === "stopping" ? "Shutting Down" : status === "error" ? "Engine Error" : "Engine Offline"}
               </span>
             </div>
             {/* Live FPS badge in header when engine is active */}
@@ -344,55 +369,90 @@ export default function App() {
           <div className="flex-1 p-gutter overflow-y-auto flex flex-col gap-gutter z-10">
             {/* Camera Preview Panel */}
             <div className={`glass-panel rounded-xl overflow-hidden relative flex-1 min-h-[400px] border flex flex-col transition-all duration-500 ${cameraIsLive ? "glow-active border-surface-tint/30" : "border-white/5"}`}>
+              {/* HUD overlay */}
               <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-start z-20 pointer-events-none">
                 <div className="flex items-center gap-2 bg-black/50 backdrop-blur-md px-3 py-1 rounded-md border border-white/10">
-                  <span className={`w-2 h-2 rounded-full ${cameraIsLive ? "bg-error pulse-dot" : "bg-surface-variant"}`}></span>
+                  <span className={`w-2 h-2 rounded-full ${cameraIsLive ? "bg-error pulse-dot" : status === "loading" ? "bg-tertiary-fixed-dim pulse-dot" : "bg-surface-variant"}`}></span>
                   <span className="font-label-mono text-label-mono text-on-surface tracking-widest uppercase">
-                    {cameraIsLive ? "Live Input" : "Feed Offline"}
+                    {cameraIsLive ? "Live Input" : status === "loading" ? "Loading..." : "Feed Offline"}
                   </span>
                 </div>
-                <div className="text-right">
-                  <span className={`block font-label-mono text-glow ${handDetected ? "text-secondary-fixed" : "text-primary-fixed"}`}>
-                    TRACKING: {cameraIsLive ? (handDetected ? `${confidencePct}%` : "No Hand") : "--"}
-                  </span>
-                  <span className="block font-label-mono text-xs text-on-surface-variant/70 mt-1">
-                    FPS: {cameraIsLive ? telemetry.fps : "--"} · RES: {cameraIsLive ? telemetry.resolution : "--"}
-                  </span>
-                  <span className="block font-label-mono text-xs text-on-surface-variant/70 mt-1">
-                    FRAMES: {cameraIsLive ? telemetry.frameCount.toLocaleString() : "--"}
-                  </span>
-                </div>
+                {cameraIsLive && (
+                  <div className="text-right">
+                    <span className={`block font-label-mono text-glow ${handDetected ? "text-secondary-fixed" : "text-primary-fixed"}`}>
+                      TRACKING: {handDetected ? `${confidencePct}%` : "No Hand"}
+                    </span>
+                    <span className="block font-label-mono text-xs text-on-surface-variant/70 mt-1">
+                      FPS: {telemetry.fps} · RES: {telemetry.resolution}
+                    </span>
+                    <span className="block font-label-mono text-xs text-on-surface-variant/70 mt-1">
+                      FRAMES: {telemetry.frameCount.toLocaleString()}
+                    </span>
+                  </div>
+                )}
               </div>
+
+              {/* Video feed / status content */}
               <div className="w-full h-full relative bg-black flex items-center justify-center">
+                {/* Live video preview */}
+                {hasVideoFrame && cameraIsLive && (
+                  <img
+                    src={`data:image/jpeg;base64,${videoFrame}`}
+                    alt="Camera preview"
+                    className="absolute inset-0 w-full h-full object-cover z-0"
+                    style={{ imageRendering: "auto" }}
+                  />
+                )}
+
+                {/* Overlay content on top of feed */}
                 {cameraIsLive ? (
-                  <div className="flex flex-col items-center gap-4">
+                  <div className="relative z-10 flex flex-col items-center gap-3">
                     {handDetected ? (
                       <>
-                        <span className="material-symbols-outlined text-6xl text-secondary-fixed/50">back_hand</span>
-                        <div className="text-secondary-fixed/70 font-label-mono uppercase tracking-widest text-sm">
-                          Hand Detected — {tracking.handedness}
-                        </div>
-                        <div className="w-48 h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-secondary-fixed to-primary-fixed rounded-full transition-all duration-300"
-                            style={{ width: `${confidencePct}%` }}
-                          />
-                        </div>
-                        <div className="text-on-surface-variant/50 font-label-mono text-xs">
-                          Confidence {confidencePct}% · Scale {tracking.handScale.toFixed(3)}
+                        <div className="bg-black/40 backdrop-blur-sm rounded-xl px-6 py-4 flex flex-col items-center gap-2 border border-secondary-fixed/20">
+                          <span className="material-symbols-outlined text-4xl text-secondary-fixed/80">back_hand</span>
+                          <div className="text-secondary-fixed font-label-mono uppercase tracking-widest text-sm">
+                            {tracking.handedness} Hand — {confidencePct}%
+                          </div>
+                          <div className="w-40 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-secondary-fixed to-primary-fixed rounded-full transition-all duration-300"
+                              style={{ width: `${confidencePct}%` }}
+                            />
+                          </div>
                         </div>
                       </>
                     ) : (
-                      <>
-                        <span className="material-symbols-outlined text-5xl text-primary-fixed/30 animate-pulse">videocam</span>
-                        <div className="text-primary-fixed/50 font-label-mono uppercase tracking-widest text-sm">
-                          Camera Active — Waiting for Hand
-                        </div>
-                        <div className="text-on-surface-variant/40 font-label-mono text-xs">
-                          {telemetry.resolution} @ {telemetry.fps} FPS
-                        </div>
-                      </>
+                      /* Show nothing when no hand — the live feed is visible behind */
+                      !hasVideoFrame && (
+                        <>
+                          <span className="material-symbols-outlined text-5xl text-primary-fixed/30 animate-pulse">videocam</span>
+                          <div className="text-primary-fixed/50 font-label-mono uppercase tracking-widest text-sm">
+                            Camera Active — Waiting for Hand
+                          </div>
+                          <div className="text-on-surface-variant/40 font-label-mono text-xs">
+                            {telemetry.resolution} @ {telemetry.fps} FPS
+                          </div>
+                        </>
+                      )
                     )}
+                  </div>
+                ) : status === "loading" ? (
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 rounded-full border-2 border-tertiary-fixed-dim border-t-transparent animate-spin"></div>
+                    <div className="text-tertiary-fixed-dim font-label-mono uppercase tracking-widest text-sm">
+                      Loading AI Models...
+                    </div>
+                    <div className="text-on-surface-variant/40 font-label-mono text-xs">
+                      This may take a few seconds on first launch
+                    </div>
+                  </div>
+                ) : status === "checking" ? (
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 rounded-full border-2 border-primary-fixed border-t-transparent animate-spin"></div>
+                    <div className="text-primary-fixed/60 font-label-mono uppercase tracking-widest text-sm">
+                      Connecting to Engine...
+                    </div>
                   </div>
                 ) : status === "ready" && cameraStatus === "failed" ? (
                   <div className="flex flex-col items-center gap-3">
@@ -501,11 +561,11 @@ export default function App() {
         {/* Footer */}
         <footer className="bg-surface-container-lowest/90 backdrop-blur-md border-t border-white/10 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] w-full flex justify-between items-center px-margin py-2 z-20 shrink-0">
           <div className="font-label-mono text-secondary-fixed text-label-mono">
-              © 2024 NEUROCURSOR. AI {status === "ready" ? "ACTIVE" : "STANDBY"}.
+              © 2024 NEUROCURSOR. AI {engineActive ? "ACTIVE" : "STANDBY"}.
           </div>
           <div className="flex gap-6">
               <span className="font-label-mono text-label-mono text-on-surface-variant/60">
-                Engine: {status === "ready" ? "Online" : "Offline"}
+                Engine: {engineActive ? "Online" : "Offline"}
               </span>
               {cameraIsLive && (
                 <span className="font-label-mono text-label-mono text-primary-fixed/60">
