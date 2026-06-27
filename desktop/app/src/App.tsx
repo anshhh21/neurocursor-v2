@@ -209,6 +209,14 @@ export default function App() {
     }
   };
 
+  const handleTogglePause = async () => {
+    try {
+      await invoke<boolean>("toggle_pause");
+    } catch (err) {
+      console.error("Failed to toggle pause:", err);
+    }
+  };
+
   const statusLabel = {
     idle: "Idle",
     checking: "Starting",
